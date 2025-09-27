@@ -207,15 +207,14 @@ export class JobsService implements OnModuleDestroy {
       where.job_type = job_type;
     }
 
-    const [data, total] = await this.prisma.$transaction([
-      this.prisma.job.findMany({
-        where,
-        skip: (page - 1) * limit,
-        take: limit,
-        orderBy: { createdAt: 'desc' },
-      }),
-      this.prisma.job.count({ where }),
-    ]);
+    const data = await this.prisma.job.findMany({
+      where,
+      skip: (page - 1) * limit,
+      take: limit,
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const total = await this.prisma.job.count({ where });
 
     return {
       total,
