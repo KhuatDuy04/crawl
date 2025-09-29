@@ -15,7 +15,7 @@ datasource db {
 
 model Job {
   id              String  @id @default(auto()) @map("_id") @db.ObjectId
-  link            String
+  link            String  @unique
   job_type        String
   title           String
   company         String
