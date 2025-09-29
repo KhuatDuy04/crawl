@@ -1,4 +1,9 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import {
+  Injectable,
+  OnModuleDestroy,
+  HttpException,
+  HttpStatus,
+} from '@nestjs/common';
 import puppeteer, { Browser, Page } from 'puppeteer';
 import { JobData } from './job.interface';
 import { PrismaService } from 'prisma/prisma.service';
@@ -40,7 +45,7 @@ export class JobsService implements OnModuleDestroy {
       }
 
       const links = await page.$$eval('.job__list-item-title a', (els) =>
-        els.map((a) => (a as HTMLAnchorElement).href),
+        els.map((a) => a.href),
       );
 
       if (links.length === 0) break;
@@ -190,7 +195,7 @@ export class JobsService implements OnModuleDestroy {
   }) {
     const { page = 1, limit = 10, keyword, location, job_type } = params;
 
-    const where: any = {};
+    const where: Record<string, any> = {};
 
     if (keyword) {
       where.OR = [
@@ -207,20 +212,28 @@ export class JobsService implements OnModuleDestroy {
       where.job_type = job_type;
     }
 
-    const data = await this.prisma.job.findMany({
-      where,
-      skip: (page - 1) * limit,
-      take: limit,
-    });
+    try {
+      const data = await this.prisma.job.findMany({
+        where,
+        skip: (page - 1) * limit,
+        take: limit,
+      });
 
-    const total = await this.prisma.job.count({ where });
+      const total = await this.prisma.job.count({ where });
 
-    return {
-      total,
-      page,
-      limit,
-      totalPages: Math.ceil(total / limit),
-      data,
-    };
+      return {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        data,
+      };
+    } catch (error) {
+      console.error('Database error:', error);
+      throw new HttpException(
+        'Database connection error. Please try again later.',
+        HttpStatus.SERVICE_UNAVAILABLE,
+      );
+    }
   }
 }
